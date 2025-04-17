@@ -1,0 +1,424 @@
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-search me-2"></i>Shodan Results
+            </h5>
+            <a href="https://www.shodan.io/host/{{ results.indicator }}" 
+               target="_blank" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-box-arrow-up-right me-1"></i>View on Shodan
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if results.shodan.error %}
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {{ results.shodan.error }}
+            {% if results.shodan.details %}
+            <div class="mt-2 small">{{ results.shodan.details }}</div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Host Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <th>IP Address</th>
+                                    <td>{{ results.indicator }}</td>
+                                </tr>
+                                <tr>
+                                    <th>ISP</th>
+                                    <td>{{ results.shodan.isp or 'Unknown' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Organization</th>
+                                    <td>{{ results.shodan.org or 'Unknown' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Hostnames</th>
+                                    <td>
+                                        {% if results.shodan.hostnames and results.shodan.hostnames|length > 0 %}
+                                        <ul class="list-unstyled mb-0">
+                                            {% for hostname in results.shodan.hostnames %}
+                                            <li>{{ hostname }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% else %}
+                                        <span class="text-muted">None</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Location</th>
+                                    <td>
+                                        {% if results.shodan.country_name %}
+                                        {{ results.shodan.country_name }}
+                                        {% if results.shodan.city %}
+                                        , {{ results.shodan.city }}
+                                        {% endif %}
+                                        {% if results.shodan.latitude and results.shodan.longitude %}
+                                        <br>
+                                        <small class="text-muted">
+                                            Lat: {{ results.shodan.latitude }}, Long: {{ results.shodan.longitude }}
+                                        </small>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Last Update</th>
+                                    <td>{{ results.shodan.last_update or 'Unknown' }}</td>
+                                </tr>
+                                {% if results.shodan.asn %}
+                                <tr>
+                                    <th>ASN</th>
+                                    <td>{{ results.shodan.asn }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                {% if results.shodan.ports and results.shodan.ports|length > 0 %}
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Open Ports</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="chart-container">
+                                <canvas id="portsChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h6>Port List:</h6>
+                            <div>
+                                {% for port in results.shodan.ports %}
+                                <span class="badge bg-secondary me-1 mb-1">{{ port }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="col-md-6">
+                {% if results.shodan.data and results.shodan.data|length > 0 %}
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Services</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion" id="servicesAccordion">
+                            {% for service in results.shodan.data %}
+                            <div class="accordion-item bg-transparent">
+                                <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                    <button class="accordion-button collapsed bg-transparent" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}" 
+                                            aria-expanded="false" aria-controls="collapse{{ loop.index }}">
+                                        <div>
+                                            <span class="badge bg-primary me-2">Port {{ service.port }}</span>
+                                            <strong>{{ service.transport | upper }}</strong>
+                                            {% if service.product %}
+                                            - {{ service.product }}
+                                            {% if service.version %}
+                                            {{ service.version }}
+                                            {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" 
+                                     aria-labelledby="heading{{ loop.index }}" data-bs-parent="#servicesAccordion">
+                                    <div class="accordion-body">
+                                        <table class="table table-sm">
+                                            <tbody>
+                                                {% if service.product %}
+                                                <tr>
+                                                    <th>Product</th>
+                                                    <td>{{ service.product }}</td>
+                                                </tr>
+                                                {% endif %}
+                                                
+                                                {% if service.version %}
+                                                <tr>
+                                                    <th>Version</th>
+                                                    <td>{{ service.version }}</td>
+                                                </tr>
+                                                {% endif %}
+                                                
+                                                {% if service.data %}
+                                                <tr>
+                                                    <th>Banner</th>
+                                                    <td>
+                                                        <div class="bg-dark p-2 rounded" style="max-height: 150px; overflow-y: auto;">
+                                                            <pre class="text-light mb-0" style="white-space: pre-wrap; word-break: break-all;">{{ service.data }}</pre>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                                
+                                                {% if service.module %}
+                                                <tr>
+                                                    <th>Module</th>
+                                                    <td>{{ service.module }}</td>
+                                                </tr>
+                                                {% endif %}
+                                                
+                                                {% if service.cpe %}
+                                                <tr>
+                                                    <th>CPE</th>
+                                                    <td>
+                                                        {% if service.cpe is string %}
+                                                        {{ service.cpe }}
+                                                        {% elif service.cpe is iterable %}
+                                                        <ul class="list-unstyled mb-0">
+                                                            {% for cpe in service.cpe %}
+                                                            <li>{{ cpe }}</li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                                
+                                                {% if service.timestamp %}
+                                                <tr>
+                                                    <th>Timestamp</th>
+                                                    <td>{{ service.timestamp }}</td>
+                                                </tr>
+                                                {% endif %}
+                                            </tbody>
+                                        </table>
+                                        
+                                        {% if service.http and service.http.server %}
+                                        <h6 class="mt-3">HTTP Headers</h6>
+                                        <div class="bg-dark p-2 rounded" style="max-height: 150px; overflow-y: auto;">
+                                            <pre class="text-light mb-0" style="white-space: pre-wrap; word-break: break-all;">{% for key, value in service.http.items() %}{{ key }}: {{ value }}
+{% endfor %}</pre>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if service.ssl and service.ssl.cert %}
+                                        <h6 class="mt-3">SSL Certificate</h6>
+                                        <table class="table table-sm">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Issued To</th>
+                                                    <td>{{ service.ssl.cert.subject.CN }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Issued By</th>
+                                                    <td>{{ service.ssl.cert.issuer.CN }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Valid From</th>
+                                                    <td>{{ service.ssl.cert.issued }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Valid To</th>
+                                                    <td>{{ service.ssl.cert.expires }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Services</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            No detailed service information available.
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if results.shodan.vulns and results.shodan.vulns|length > 0 %}
+                <div class="card mt-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Vulnerabilities</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>{{ results.shodan.vulns|length }} vulnerabilities found!</strong>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>CVE ID</th>
+                                        <th>CVSS</th>
+                                        <th>Info</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for vuln in results.shodan.vulns %}
+                                    <tr>
+                                        <td>
+                                            <a href="https://nvd.nist.gov/vuln/detail/{{ vuln }}" target="_blank">
+                                                {{ vuln }}
+                                                <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                            </a>
+                                        </td>
+                                        <td>
+                                            {% if results.shodan.get(vuln + '_cvss') %}
+                                            <span class="badge 
+                                                {% if results.shodan[vuln + '_cvss'] >= 7.0 %}
+                                                    bg-danger
+                                                {% elif results.shodan[vuln + '_cvss'] >= 4.0 %}
+                                                    bg-warning text-dark
+                                                {% else %}
+                                                    bg-info
+                                                {% endif %}">
+                                                {{ results.shodan[vuln + '_cvss'] }}
+                                            </span>
+                                            {% else %}
+                                            <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if results.shodan.get(vuln + '_summary') %}
+                                            {{ results.shodan[vuln + '_summary'] }}
+                                            {% else %}
+                                            <span class="text-muted">No summary available</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Raw JSON Data -->
+        <div class="mt-4">
+            <button id="shodan-json-btn" class="btn btn-sm btn-outline-secondary" 
+                    onclick="toggleJsonView('shodan-json-btn', 'shodan-json-data')">
+                <i class="bi bi-chevron-down"></i> Show Raw JSON
+            </button>
+            <div id="shodan-json-data" class="json-data mt-2" style="display: none;">
+                <pre>{{ results.shodan | tojson(indent=2) }}</pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if results.shodan and not results.shodan.error and results.shodan.ports and results.shodan.ports|length > 0 %}
+    // Create ports chart
+    const portsCtx = document.getElementById('portsChart');
+    if (portsCtx) {
+        // Service categories based on common port assignments
+        const portCategories = {
+            'Web': [80, 443, 8080, 8443, 3000, 4000, 5000, 8000, 8888],
+            'Email': [25, 110, 143, 465, 587, 993, 995],
+            'File Transfer': [20, 21, 22, 69, 115, 989, 990],
+            'Remote Access': [22, 23, 3389, 5900, 5938],
+            'Database': [1433, 1521, 3306, 5432, 6379, 9042, 27017],
+            'DNS': [53, 853],
+            'Other': []
+        };
+        
+        // Count ports by category
+        let categoryData = {};
+        for (const [category, ports] of Object.entries(portCategories)) {
+            categoryData[category] = 0;
+        }
+        
+        {% for port in results.shodan.ports %}
+        let categorized = false;
+        for (const [category, ports] of Object.entries(portCategories)) {
+            if (ports.includes({{ port }})) {
+                categoryData[category]++;
+                categorized = true;
+                break;
+            }
+        }
+        if (!categorized) {
+            categoryData['Other']++;
+        }
+        {% endfor %}
+        
+        // Filter out empty categories
+        const filteredCategories = Object.entries(categoryData)
+            .filter(([_, count]) => count > 0)
+            .map(([category, _]) => category);
+        
+        const filteredCounts = Object.entries(categoryData)
+            .filter(([_, count]) => count > 0)
+            .map(([_, count]) => count);
+        
+        // Create chart
+        new Chart(portsCtx, {
+            type: 'pie',
+            data: {
+                labels: filteredCategories,
+                datasets: [{
+                    data: filteredCounts,
+                    backgroundColor: [
+                        '#0d6efd', // blue
+                        '#dc3545', // red
+                        '#ffc107', // yellow
+                        '#20c997', // teal
+                        '#6f42c1', // purple
+                        '#fd7e14', // orange
+                        '#6c757d'  // gray
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                let value = context.raw || 0;
+                                let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                let percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} ports (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+});
+</script>

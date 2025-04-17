@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}Threat Intelligence Platform | Search{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="text-center mb-4">
+            <h1 class="display-5 fw-bold">Threat Intelligence Platform</h1>
+            <p class="lead">
+                Query multiple security APIs to investigate indicators of compromise
+            </p>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body search-container">
+                <h4 class="card-title mb-3">
+                    <i class="bi bi-search me-2"></i>Search for Indicators
+                </h4>
+                
+                <form id="search-form" action="{{ url_for('search') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="indicator" class="form-label">Enter an Indicator of Compromise:</label>
+                        <input type="text" class="form-control form-control-lg" id="indicator" name="indicator" 
+                               placeholder="IP, Domain, URL, or File Hash" required>
+                        <div class="form-text">
+                            Supported formats:
+                            <span class="badge bg-secondary indicator-badge">IP: 8.8.8.8</span>
+                            <span class="badge bg-secondary indicator-badge">Domain: example.com</span>
+                            <span class="badge bg-secondary indicator-badge">URL: https://example.com/path</span>
+                            <span class="badge bg-secondary indicator-badge">Hash: MD5, SHA1, SHA256</span>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" id="search-button" class="btn btn-primary btn-lg">
+                            <i class="bi bi-search me-2"></i>Search
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- API Status Card -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity me-2"></i>API Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="service-logo bg-primary text-white">
+                                <i class="bi bi-shield"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold">VirusTotal</div>
+                                <div id="virustotal-status">
+                                    <span class="badge bg-secondary">Checking...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="service-logo bg-danger text-white">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold">AbuseIPDB</div>
+                                <div id="abuseipdb-status">
+                                    <span class="badge bg-secondary">Checking...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="service-logo bg-success text-white">
+                                <i class="bi bi-globe"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold">AlienVault OTX</div>
+                                <div id="alienvault-otx-status">
+                                    <span class="badge bg-secondary">Checking...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="service-logo bg-info text-white">
+                                <i class="bi bi-search"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold">Shodan</div>
+                                <div id="shodan-status">
+                                    <span class="badge bg-secondary">Checking...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guide Card -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>About This Platform
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    This threat intelligence platform aggregates data from multiple security sources to help investigate indicators of compromise.
+                    Enter an IP address, domain name, URL, or file hash to get comprehensive threat intelligence.
+                </p>
+                
+                <h6 class="mt-3">Integrated Services:</h6>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6><i class="bi bi-shield text-primary me-2"></i>VirusTotal</h6>
+                                <p class="card-text text-small">Check file hashes, domains, and URLs against multiple antivirus engines and security services.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6><i class="bi bi-exclamation-triangle text-danger me-2"></i>AbuseIPDB</h6>
+                                <p class="card-text text-small">Check if an IP address has been reported for abusive behavior or malicious activity.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6><i class="bi bi-globe text-success me-2"></i>AlienVault OTX</h6>
+                                <p class="card-text text-small">Access threat data from Open Threat Exchange, including malware samples and community reports.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6><i class="bi bi-search text-info me-2"></i>Shodan</h6>
+                                <p class="card-text text-small">View information about internet-connected devices, including open ports and services.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

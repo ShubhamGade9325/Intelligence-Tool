@@ -1,0 +1,602 @@
+{% extends 'base.html' %}
+
+{% block title %}Results for {{ indicator }} | Threat Intelligence Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="mb-1">Results for: {{ indicator }}</h1>
+                <div>
+                    <span class="badge bg-primary indicator-badge">
+                        Type: {{ indicator_type | capitalize }}
+                    </span>
+                    <span class="text-muted">
+                        {% if from_history %}
+                            Showing results from history
+                        {% else %}
+                            <i class="bi bi-clock me-1"></i>Searched: Just now
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            <div>
+                <button class="btn btn-outline-secondary me-2" onclick="copyToClipboard('{{ indicator }}')">
+                    <i class="bi bi-clipboard me-1"></i>Copy Indicator
+                </button>
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    <i class="bi bi-search me-1"></i>New Search
+                </a>
+            </div>
+        </div>
+
+        <!-- Tabs for results -->
+        <ul class="nav nav-tabs mb-4" id="resultsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" 
+                        type="button" role="tab" aria-controls="summary" aria-selected="true">
+                    <i class="bi bi-file-text me-1"></i>Summary
+                </button>
+            </li>
+            {% if results.virustotal %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="virustotal-tab" data-bs-toggle="tab" data-bs-target="#virustotal" 
+                        type="button" role="tab" aria-controls="virustotal" aria-selected="false">
+                    <i class="bi bi-shield me-1"></i>VirusTotal
+                </button>
+            </li>
+            {% endif %}
+            {% if results.abuseipdb %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="abuseipdb-tab" data-bs-toggle="tab" data-bs-target="#abuseipdb" 
+                        type="button" role="tab" aria-controls="abuseipdb" aria-selected="false">
+                    <i class="bi bi-exclamation-triangle me-1"></i>AbuseIPDB
+                </button>
+            </li>
+            {% endif %}
+            {% if results.alienvault %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="alienvault-tab" data-bs-toggle="tab" data-bs-target="#alienvault" 
+                        type="button" role="tab" aria-controls="alienvault" aria-selected="false">
+                    <i class="bi bi-globe me-1"></i>AlienVault OTX
+                </button>
+            </li>
+            {% endif %}
+            {% if results.shodan %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="shodan-tab" data-bs-toggle="tab" data-bs-target="#shodan" 
+                        type="button" role="tab" aria-controls="shodan" aria-selected="false">
+                    <i class="bi bi-search me-1"></i>Shodan
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+
+        <div class="tab-content" id="resultsTabsContent">
+            <!-- Summary Tab -->
+            <div class="tab-pane fade show active" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-file-text me-2"></i>Threat Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <!-- VirusTotal Summary -->
+                                    {% if results.virustotal and not results.virustotal.error %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card result-card h-100 border-start border-4 
+                                            {% if results.virustotal.data.attributes.last_analysis_stats.malicious > 10 %}
+                                                border-threat-critical
+                                            {% elif results.virustotal.data.attributes.last_analysis_stats.malicious > 5 %}
+                                                border-threat-high
+                                            {% elif results.virustotal.data.attributes.last_analysis_stats.malicious > 0 %}
+                                                border-threat-medium
+                                            {% else %}
+                                                border-threat-low
+                                            {% endif %}">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="mb-0">
+                                                        <i class="bi bi-shield me-2"></i>VirusTotal
+                                                    </h6>
+                                                    <span class="badge 
+                                                        {% if results.virustotal.data.attributes.last_analysis_stats.malicious > 10 %}
+                                                            bg-danger
+                                                        {% elif results.virustotal.data.attributes.last_analysis_stats.malicious > 5 %}
+                                                            bg-warning text-dark
+                                                        {% elif results.virustotal.data.attributes.last_analysis_stats.malicious > 0 %}
+                                                            bg-info
+                                                        {% else %}
+                                                            bg-success
+                                                        {% endif %}">
+                                                        {{ results.virustotal.data.attributes.last_analysis_stats.malicious }} Detections
+                                                    </span>
+                                                </div>
+                                                <div class="text-center mb-2">
+                                                    <div class="score-chart-container">
+                                                        <canvas id="vtScoreChart"></canvas>
+                                                    </div>
+                                                </div>
+                                                <p class="card-text small">
+                                                    {{ results.virustotal.data.attributes.last_analysis_stats.malicious }} out of 
+                                                    {{ results.virustotal.data.attributes.last_analysis_stats.malicious + 
+                                                       results.virustotal.data.attributes.last_analysis_stats.undetected }} 
+                                                    security vendors flagged this as malicious.
+                                                </p>
+                                                <a href="#virustotal" class="stretched-link" data-bs-toggle="tab" 
+                                                   role="tab" aria-controls="virustotal"></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- AbuseIPDB Summary -->
+                                    {% if results.abuseipdb and not results.abuseipdb.error and results.indicator_type == 'ip' %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card result-card h-100 border-start border-4 
+                                            {% if results.abuseipdb.data.abuseConfidenceScore > 80 %}
+                                                border-threat-critical
+                                            {% elif results.abuseipdb.data.abuseConfidenceScore > 50 %}
+                                                border-threat-high
+                                            {% elif results.abuseipdb.data.abuseConfidenceScore > 20 %}
+                                                border-threat-medium
+                                            {% else %}
+                                                border-threat-low
+                                            {% endif %}">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="mb-0">
+                                                        <i class="bi bi-exclamation-triangle me-2"></i>AbuseIPDB
+                                                    </h6>
+                                                    <span class="badge 
+                                                        {% if results.abuseipdb.data.abuseConfidenceScore > 80 %}
+                                                            bg-danger
+                                                        {% elif results.abuseipdb.data.abuseConfidenceScore > 50 %}
+                                                            bg-warning text-dark
+                                                        {% elif results.abuseipdb.data.abuseConfidenceScore > 20 %}
+                                                            bg-info
+                                                        {% else %}
+                                                            bg-success
+                                                        {% endif %}">
+                                                        {{ results.abuseipdb.data.abuseConfidenceScore }}% Confidence
+                                                    </span>
+                                                </div>
+                                                <div class="text-center mb-2">
+                                                    <div class="score-chart-container">
+                                                        <canvas id="abuseScoreChart"></canvas>
+                                                    </div>
+                                                </div>
+                                                <p class="card-text small">
+                                                    Reported {{ results.abuseipdb.data.totalReports }} times by 
+                                                    {{ results.abuseipdb.data.numDistinctUsers }} distinct users.
+                                                    {% if results.abuseipdb.data.countryName %}
+                                                    <br>Country: {{ results.abuseipdb.data.countryName }}
+                                                    {% endif %}
+                                                </p>
+                                                <a href="#abuseipdb" class="stretched-link" data-bs-toggle="tab" 
+                                                   role="tab" aria-controls="abuseipdb"></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- AlienVault Summary -->
+                                    {% if results.alienvault and not results.alienvault.error and results.alienvault.pulse_info %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card result-card h-100 border-start border-4 
+                                            {% if results.alienvault.pulse_info.count > 10 %}
+                                                border-threat-critical
+                                            {% elif results.alienvault.pulse_info.count > 5 %}
+                                                border-threat-high
+                                            {% elif results.alienvault.pulse_info.count > 0 %}
+                                                border-threat-medium
+                                            {% else %}
+                                                border-threat-low
+                                            {% endif %}">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="mb-0">
+                                                        <i class="bi bi-globe me-2"></i>AlienVault OTX
+                                                    </h6>
+                                                    <span class="badge 
+                                                        {% if results.alienvault.pulse_info.count > 10 %}
+                                                            bg-danger
+                                                        {% elif results.alienvault.pulse_info.count > 5 %}
+                                                            bg-warning text-dark
+                                                        {% elif results.alienvault.pulse_info.count > 0 %}
+                                                            bg-info
+                                                        {% else %}
+                                                            bg-success
+                                                        {% endif %}">
+                                                        {{ results.alienvault.pulse_info.count }} Pulses
+                                                    </span>
+                                                </div>
+                                                <p class="card-text">
+                                                    Found in {{ results.alienvault.pulse_info.count }} threat intelligence pulses.
+                                                </p>
+                                                {% if results.alienvault.pulse_info.references %}
+                                                <p class="card-text small">
+                                                    Associated with {{ results.alienvault.pulse_info.references | length }} references.
+                                                </p>
+                                                {% endif %}
+                                                <a href="#alienvault" class="stretched-link" data-bs-toggle="tab" 
+                                                   role="tab" aria-controls="alienvault"></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- Shodan Summary -->
+                                    {% if results.shodan and not results.shodan.error %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card result-card h-100 border-start border-4 
+                                            {% if results.shodan.ports and results.shodan.ports|length > 10 %}
+                                                border-threat-medium
+                                            {% elif results.shodan.ports %}
+                                                border-threat-low
+                                            {% else %}
+                                                border-threat-low
+                                            {% endif %}">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="mb-0">
+                                                        <i class="bi bi-search me-2"></i>Shodan
+                                                    </h6>
+                                                    {% if results.shodan.ports %}
+                                                    <span class="badge bg-secondary">
+                                                        {{ results.shodan.ports|length }} Open Ports
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                                {% if results.shodan.isp %}
+                                                <p class="card-text">
+                                                    ISP: {{ results.shodan.isp }}
+                                                </p>
+                                                {% endif %}
+                                                {% if results.shodan.country_name %}
+                                                <p class="card-text small">
+                                                    Location: {{ results.shodan.country_name }}
+                                                    {% if results.shodan.city %}
+                                                    , {{ results.shodan.city }}
+                                                    {% endif %}
+                                                </p>
+                                                {% endif %}
+                                                <a href="#shodan" class="stretched-link" data-bs-toggle="tab" 
+                                                   role="tab" aria-controls="shodan"></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Indicator Info Card -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Indicator Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <table class="table table-sm">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Indicator</th>
+                                                    <td>{{ indicator }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Type</th>
+                                                    <td>{{ indicator_type | capitalize }}</td>
+                                                </tr>
+                                                {% if indicator_type == 'ip' and results.abuseipdb and results.abuseipdb.data %}
+                                                <tr>
+                                                    <th>ISP</th>
+                                                    <td>{{ results.abuseipdb.data.isp or 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Usage Type</th>
+                                                    <td>{{ results.abuseipdb.data.usageType or 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Country</th>
+                                                    <td>
+                                                        {% if results.abuseipdb.data.countryCode %}
+                                                        {{ results.abuseipdb.data.countryCode }}, {{ results.abuseipdb.data.countryName }}
+                                                        {% else %}
+                                                        Unknown
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                                {% if indicator_type == 'domain' and results.virustotal and results.virustotal.data %}
+                                                <tr>
+                                                    <th>Registrar</th>
+                                                    <td>{{ results.virustotal.data.attributes.registrar or 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Creation Date</th>
+                                                    <td>
+                                                        {% if results.virustotal.data.attributes.creation_date %}
+                                                        {{ results.virustotal.data.attributes.creation_date | int | strftime('%Y-%m-%d') }}
+                                                        {% else %}
+                                                        Unknown
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <table class="table table-sm">
+                                            {% if indicator_type == 'hash' and results.virustotal and results.virustotal.data %}
+                                            <tbody>
+                                                <tr>
+                                                    <th>File Type</th>
+                                                    <td>{{ results.virustotal.data.attributes.type or 'Unknown' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>File Size</th>
+                                                    <td>
+                                                        {% if results.virustotal.data.attributes.size %}
+                                                        {{ results.virustotal.data.attributes.size }} bytes
+                                                        {% else %}
+                                                        Unknown
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>First Seen</th>
+                                                    <td>
+                                                        {% if results.virustotal.data.attributes.first_submission_date %}
+                                                        {{ results.virustotal.data.attributes.first_submission_date | int | strftime('%Y-%m-%d') }}
+                                                        {% else %}
+                                                        Unknown
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Last Seen</th>
+                                                    <td>
+                                                        {% if results.virustotal.data.attributes.last_submission_date %}
+                                                        {{ results.virustotal.data.attributes.last_submission_date | int | strftime('%Y-%m-%d') }}
+                                                        {% else %}
+                                                        Unknown
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                            {% endif %}
+
+                                            {% if indicator_type == 'url' and results.virustotal and results.virustotal.data %}
+                                            <tbody>
+                                                <tr>
+                                                    <th>Final URL</th>
+                                                    <td>{{ results.virustotal.data.attributes.final_url or indicator }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>First Seen</th>
+                                                    <td>
+                                                        {% if results.virustotal.data.attributes.first_submission_date %}
+                                                        {{ results.virustotal.data.attributes.first_submission_date | int | strftime('%Y-%m-%d') }}
+                                                        {% else %}
+                                                        Unknown
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Last Seen</th>
+                                                    <td>
+                                                        {% if results.virustotal.data.attributes.last_submission_date %}
+                                                        {{ results.virustotal.data.attributes.last_submission_date | int | strftime('%Y-%m-%d') }}
+                                                        {% else %}
+                                                        Unknown
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                            {% endif %}
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <!-- Action Card -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    {% if indicator_type == 'ip' %}
+                                    <a href="https://www.virustotal.com/gui/ip-address/{{ indicator }}" 
+                                       target="_blank" class="btn btn-outline-primary">
+                                        <i class="bi bi-shield me-2"></i>View on VirusTotal
+                                    </a>
+                                    <a href="https://www.abuseipdb.com/check/{{ indicator }}" 
+                                       target="_blank" class="btn btn-outline-primary">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>View on AbuseIPDB
+                                    </a>
+                                    <a href="https://otx.alienvault.com/indicator/ip/{{ indicator }}" 
+                                       target="_blank" class="btn btn-outline-primary">
+                                        <i class="bi bi-globe me-2"></i>View on AlienVault OTX
+                                    </a>
+                                    <a href="https://www.shodan.io/host/{{ indicator }}" 
+                                       target="_blank" class="btn btn-outline-primary">
+                                        <i class="bi bi-search me-2"></i>View on Shodan
+                                    </a>
+                                    {% elif indicator_type == 'domain' %}
+                                    <a href="https://www.virustotal.com/gui/domain/{{ indicator }}" 
+                                       target="_blank" class="btn btn-outline-primary">
+                                        <i class="bi bi-shield me-2"></i>View on VirusTotal
+                                    </a>
+                                    <a href="https://otx.alienvault.com/indicator/domain/{{ indicator }}" 
+                                       target="_blank" class="btn btn-outline-primary">
+                                        <i class="bi bi-globe me-2"></i>View on AlienVault OTX
+                                    </a>
+                                    {% elif indicator_type == 'url' %}
+                                    <a href="https://www.virustotal.com/gui/url/{{ indicator|urlencode }}" 
+                                       target="_blank" class="btn btn-outline-primary">
+                                        <i class="bi bi-shield me-2"></i>View on VirusTotal
+                                    </a>
+                                    <a href="https://otx.alienvault.com/indicator/url/{{ indicator|urlencode }}" 
+                                       target="_blank" class="btn btn-outline-primary">
+                                        <i class="bi bi-globe me-2"></i>View on AlienVault OTX
+                                    </a>
+                                    {% elif indicator_type == 'hash' %}
+                                    <a href="https://www.virustotal.com/gui/file/{{ indicator }}" 
+                                       target="_blank" class="btn btn-outline-primary">
+                                        <i class="bi bi-shield me-2"></i>View on VirusTotal
+                                    </a>
+                                    <a href="https://otx.alienvault.com/indicator/file/{{ indicator }}" 
+                                       target="_blank" class="btn btn-outline-primary">
+                                        <i class="bi bi-globe me-2"></i>View on AlienVault OTX
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- External Links Card -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-link-45deg me-2"></i>Additional Resources</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    {% if indicator_type == 'ip' %}
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://www.greynoise.io/viz/ip/{{ indicator }}" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-soundwave me-2"></i>GreyNoise</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://censys.io/ipv4/{{ indicator }}" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-eye me-2"></i>Censys</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://threatcrowd.org/ip.php?ip={{ indicator }}" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-cloud me-2"></i>ThreatCrowd</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    {% elif indicator_type == 'domain' %}
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://whois.domaintools.com/{{ indicator }}" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-info-circle me-2"></i>WHOIS</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://securitytrails.com/domain/{{ indicator }}/dns" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-signpost me-2"></i>SecurityTrails DNS</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://threatcrowd.org/domain.php?domain={{ indicator }}" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-cloud me-2"></i>ThreatCrowd</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    {% elif indicator_type == 'url' %}
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://urlscan.io/search/#{{ indicator|urlencode }}" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-search me-2"></i>URLScan.io</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://www.hybrid-analysis.com/search?query={{ indicator|urlencode }}" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-filter me-2"></i>Hybrid Analysis</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    {% elif indicator_type == 'hash' %}
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://www.hybrid-analysis.com/search?query={{ indicator }}" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-filter me-2"></i>Hybrid Analysis</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://www.joesandbox.com/search?q={{ indicator }}" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-box me-2"></i>Joe Sandbox</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="list-group-item bg-transparent">
+                                        <a href="https://tria.ge/search?q={{ indicator }}" target="_blank" class="d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-binoculars me-2"></i>Triage</span>
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- VirusTotal Tab -->
+            {% if results.virustotal %}
+            <div class="tab-pane fade" id="virustotal" role="tabpanel" aria-labelledby="virustotal-tab">
+                {% include 'partials/virustotal_results.html' %}
+            </div>
+            {% endif %}
+            
+            <!-- AbuseIPDB Tab -->
+            {% if results.abuseipdb %}
+            <div class="tab-pane fade" id="abuseipdb" role="tabpanel" aria-labelledby="abuseipdb-tab">
+                {% include 'partials/abuseipdb_results.html' %}
+            </div>
+            {% endif %}
+            
+            <!-- AlienVault Tab -->
+            {% if results.alienvault %}
+            <div class="tab-pane fade" id="alienvault" role="tabpanel" aria-labelledby="alienvault-tab">
+                {% include 'partials/alienvault_results.html' %}
+            </div>
+            {% endif %}
+            
+            <!-- Shodan Tab -->
+            {% if results.shodan %}
+            <div class="tab-pane fade" id="shodan" role="tabpanel" aria-labelledby="shodan-tab">
+                {% include 'partials/shodan_results.html' %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if results.virustotal and not results.virustotal.error and results.virustotal.data.attributes.last_analysis_stats %}
+    // Create VirusTotal score chart
+    const vtMalicious = {{ results.virustotal.data.attributes.last_analysis_stats.malicious }};
+    const vtTotal = {{ results.virustotal.data.attributes.last_analysis_stats.malicious + 
+                      results.virustotal.data.attributes.last_analysis_stats.undetected }};
+    createThreatScoreChart('vtScoreChart', vtMalicious, vtTotal, 'Detections');
+    {% endif %}
+    
+    {% if results.abuseipdb and not results.abuseipdb.error and results.abuseipdb.data.abuseConfidenceScore %}
+    // Create AbuseIPDB score chart
+    const abuseScore = {{ results.abuseipdb.data.abuseConfidenceScore }};
+    createThreatScoreChart('abuseScoreChart', abuseScore, 100, 'Confidence');
+    {% endif %}
+});
+</script>
+{% endblock %}

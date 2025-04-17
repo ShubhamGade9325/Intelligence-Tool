@@ -1,0 +1,411 @@
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-globe me-2"></i>AlienVault OTX Results
+            </h5>
+            <a href="https://otx.alienvault.com/indicator/{{ results.indicator_type }}/{{ results.indicator }}" 
+               target="_blank" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-box-arrow-up-right me-1"></i>View on AlienVault OTX
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if results.alienvault.error %}
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {{ results.alienvault.error }}
+            {% if results.alienvault.details %}
+            <div class="mt-2 small">{{ results.alienvault.details }}</div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Pulse Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if results.alienvault.pulse_info %}
+                        <div class="text-center mb-3">
+                            <div class="h1 
+                                {% if results.alienvault.pulse_info.count > 10 %}
+                                    text-danger
+                                {% elif results.alienvault.pulse_info.count > 5 %}
+                                    text-warning
+                                {% elif results.alienvault.pulse_info.count > 0 %}
+                                    text-info
+                                {% else %}
+                                    text-success
+                                {% endif %}">
+                                {{ results.alienvault.pulse_info.count }}
+                            </div>
+                            <div class="text-muted">Pulse Count</div>
+                            
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge 
+                                        {% if results.alienvault.pulse_info.count > 10 %}
+                                            bg-danger
+                                        {% elif results.alienvault.pulse_info.count > 5 %}
+                                            bg-warning text-dark
+                                        {% elif results.alienvault.pulse_info.count > 0 %}
+                                            bg-info
+                                        {% else %}
+                                            bg-success
+                                        {% endif %}">
+                                        {{ results.alienvault.pulse_info.count }} Pulses
+                                    </span>
+                                    
+                                    {% if results.alienvault.pulse_info.references %}
+                                    <span class="badge bg-secondary">
+                                        {{ results.alienvault.pulse_info.references | length }} References
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if results.alienvault.pulse_info.pulses and results.alienvault.pulse_info.pulses|length > 0 %}
+                        <div class="small">
+                            <h6 class="mb-2">Top Pulses:</h6>
+                            <div class="list-group">
+                                {% for pulse in results.alienvault.pulse_info.pulses[:5] %}
+                                <div class="list-group-item bg-transparent">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ pulse.name }}</h6>
+                                            <p class="mb-1 text-muted">
+                                                {% if pulse.created %}
+                                                Created: {{ pulse.created }}
+                                                {% endif %}
+                                                {% if pulse.author_name %}
+                                                by {{ pulse.author_name }}
+                                                {% endif %}
+                                            </p>
+                                            {% if pulse.tags and pulse.tags|length > 0 %}
+                                            <div>
+                                                {% for tag in pulse.tags[:5] %}
+                                                <span class="badge bg-secondary">{{ tag }}</span>
+                                                {% endfor %}
+                                                {% if pulse.tags|length > 5 %}
+                                                <span class="badge bg-secondary">+{{ pulse.tags|length - 5 }} more</span>
+                                                {% endif %}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% if pulse.id %}
+                                        <a href="https://otx.alienvault.com/pulse/{{ pulse.id }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                
+                                {% if results.alienvault.pulse_info.pulses|length > 5 %}
+                                <div class="list-group-item bg-transparent text-center">
+                                    <span class="text-muted">+ {{ results.alienvault.pulse_info.pulses|length - 5 }} more pulses</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            No pulse information available.
+                        </div>
+                        {% endif %}
+                        
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            No pulse information available.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if results.alienvault.pulse_info and results.alienvault.pulse_info.references and results.alienvault.pulse_info.references|length > 0 %}
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">References</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group" style="max-height: 300px; overflow-y: auto;">
+                            {% for reference in results.alienvault.pulse_info.references %}
+                            <a href="{{ reference }}" target="_blank" class="list-group-item list-group-item-action bg-transparent">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="text-truncate">{{ reference }}</div>
+                                    <i class="bi bi-box-arrow-up-right ms-2"></i>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="col-md-6">
+                {% if results.alienvault.pulse_info and results.alienvault.pulse_info.pulses and results.alienvault.pulse_info.pulses|length > 0 %}
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Tags Analysis</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="tags-container">
+                            {% set tags = {} %}
+                            {% for pulse in results.alienvault.pulse_info.pulses %}
+                                {% if pulse.tags %}
+                                    {% for tag in pulse.tags %}
+                                        {% if tag in tags %}
+                                            {% set _ = tags.update({tag: tags[tag] + 1}) %}
+                                        {% else %}
+                                            {% set _ = tags.update({tag: 1}) %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if tags.keys()|length > 0 %}
+                            <div class="chart-container">
+                                <canvas id="tagsChart"></canvas>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <h6>Common Tags:</h6>
+                                <div>
+                                    {% for tag, count in tags.items() %}
+                                    {% if count > 1 %}
+                                    <span class="badge bg-secondary me-1 mb-1">{{ tag }} ({{ count }})</span>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                No tag information available.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Indicator Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <th>Type</th>
+                                    <td>{{ results.indicator_type | capitalize }}</td>
+                                </tr>
+                                
+                                {% if results.indicator_type == 'ip' %}
+                                <tr>
+                                    <th>Whois</th>
+                                    <td>
+                                        {% if results.alienvault.whois %}
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" 
+                                                data-bs-toggle="collapse" data-bs-target="#whoisData" 
+                                                aria-expanded="false" aria-controls="whoisData">
+                                            Show Whois Data
+                                        </button>
+                                        <div class="collapse mt-2" id="whoisData">
+                                            <div class="card card-body bg-light">
+                                                <pre style="white-space: pre-wrap; max-height: 200px; overflow-y: auto;">{{ results.alienvault.whois }}</pre>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">No Whois data available</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                
+                                <tr>
+                                    <th>Reputation</th>
+                                    <td>
+                                        {% if results.alienvault.reputation %}
+                                        <span class="badge 
+                                            {% if results.alienvault.reputation < 0 %}
+                                                bg-danger
+                                            {% elif results.alienvault.reputation == 0 %}
+                                                bg-secondary
+                                            {% else %}
+                                                bg-success
+                                            {% endif %}">
+                                            {{ results.alienvault.reputation }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted">No reputation data</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                
+                                {% if results.indicator_type == 'domain' %}
+                                <tr>
+                                    <th>Passive DNS</th>
+                                    <td>
+                                        {% if results.alienvault.passive_dns and results.alienvault.passive_dns|length > 0 %}
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" 
+                                                data-bs-toggle="collapse" data-bs-target="#passiveDnsData" 
+                                                aria-expanded="false" aria-controls="passiveDnsData">
+                                            Show Passive DNS Data ({{ results.alienvault.passive_dns|length }})
+                                        </button>
+                                        <div class="collapse mt-2" id="passiveDnsData">
+                                            <div class="card card-body bg-light">
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Address</th>
+                                                                <th>First Seen</th>
+                                                                <th>Last Seen</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for record in results.alienvault.passive_dns %}
+                                                            <tr>
+                                                                <td>{{ record.address }}</td>
+                                                                <td>{{ record.first }}</td>
+                                                                <td>{{ record.last }}</td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">No passive DNS data available</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                
+                                {% if results.indicator_type == 'hash' %}
+                                <tr>
+                                    <th>Analysis</th>
+                                    <td>
+                                        {% if results.alienvault.analysis %}
+                                        <div>
+                                            <strong>Plugins Run:</strong> {{ results.alienvault.analysis.plugins|length }}
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">No analysis data available</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                
+                                {% if results.alienvault.sections %}
+                                <tr>
+                                    <th>Available Sections</th>
+                                    <td>
+                                        <div>
+                                            {% for section in results.alienvault.sections %}
+                                            <span class="badge bg-secondary">{{ section }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Raw JSON Data -->
+        <div class="mt-4">
+            <button id="alien-json-btn" class="btn btn-sm btn-outline-secondary" 
+                    onclick="toggleJsonView('alien-json-btn', 'alien-json-data')">
+                <i class="bi bi-chevron-down"></i> Show Raw JSON
+            </button>
+            <div id="alien-json-data" class="json-data mt-2" style="display: none;">
+                <pre>{{ results.alienvault | tojson(indent=2) }}</pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if results.alienvault and not results.alienvault.error %}
+    {% if results.alienvault.pulse_info and results.alienvault.pulse_info.pulses and results.alienvault.pulse_info.pulses|length > 0 %}
+    // Setup tags data for chart
+    let tagsData = {};
+    {% for pulse in results.alienvault.pulse_info.pulses %}
+        {% if pulse.tags %}
+            {% for tag in pulse.tags %}
+                if (tagsData['{{ tag }}']) {
+                    tagsData['{{ tag }}']++;
+                } else {
+                    tagsData['{{ tag }}'] = 1;
+                }
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+    
+    // Convert to array for chart.js
+    let tagLabels = [];
+    let tagValues = [];
+    
+    // Sort by count and take top 10
+    const sortedTags = Object.entries(tagsData)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+    
+    for (const [tag, count] of sortedTags) {
+        tagLabels.push(tag);
+        tagValues.push(count);
+    }
+    
+    // Create tags chart
+    const tagsCtx = document.getElementById('tagsChart');
+    if (tagsCtx && tagLabels.length > 0) {
+        new Chart(tagsCtx, {
+            type: 'bar',
+            data: {
+                labels: tagLabels,
+                datasets: [{
+                    label: 'Count',
+                    data: tagValues,
+                    backgroundColor: '#0d6efd',
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Occurrence Count'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+    {% endif %}
+});
+</script>
